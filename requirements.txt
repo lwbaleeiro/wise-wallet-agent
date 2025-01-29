@@ -1,4 +1,4 @@
 
-pip install --upgrade google-api-python-client 
-pip install gspread oauth2client
+pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib oauth2client
+pip install gspread
 pip install pandas pdfplumber requests
