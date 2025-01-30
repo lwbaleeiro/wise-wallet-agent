@@ -2,6 +2,7 @@ import os
 import re
 import base64
 import tempfile
+import pandas as pd
 
 from pathlib import Path
 
@@ -9,6 +10,8 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+
+from src.csv_processor import parse_nubank_csv, validate_transactions
 
 # ========== Configurações ==========
 BASE_DIR = Path(__file__).parent.resolve()
@@ -102,6 +105,8 @@ def process_email(service, message):
                 attachment_id,
                 part['filename']
             )
+            df = parse_nubank_csv(file_path)
+            validate_transactions(df)
             attachments.append(file_path)
     
     # Marca email como processado
@@ -114,7 +119,7 @@ def process_email(service, message):
             }
     ).execute()
 
-    return attachments
+    return pd.contact(attachments)
 
 # Cria label 'Processado' para marcar emails já processados. Necessário ser chamado apenas uma vez
 def get_or_create_processed_label(service):
@@ -143,22 +148,22 @@ def get_or_create_processed_label(service):
         print(f'Error creating label: {str(e)}')
         return None
 
-def main():
-    try:
-        service = get_gmail_service()
-        print('Autenticação bem sucedida!')
+# def main():
+#     try:
+#         service = get_gmail_service()
+#         print('Autenticação bem sucedida!')
 
-        emails = find_statement_emails(service)
+#         emails = find_statement_emails(service)
 
-        for email in emails:
-            try:
-                attachments = process_email(service, email)
-                print(f'Arquivos baixados: {attachments}')
-            except Exception as e:
-                print(f'Error processing attachments email: {str(e)}')
+#         for email in emails:
+#             try:
+#                 attachments = process_email(service, email)
+#                 print(f'Arquivos baixados: {attachments}')
+#             except Exception as e:
+#                 print(f'Error processing attachments email: {str(e)}')
 
-    except Exception as e:
-        print(f'Error processing email: {str(e)}')
+#     except Exception as e:
+#         print(f'Error processing email: {str(e)}')
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
