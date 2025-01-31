@@ -38,14 +38,11 @@ def parse_nubank_csv(file_path):
             encoding='utf-8',
             header=0,
             sep=',',
-            thousands='.',
-            decimal=',',
             skip_blank_lines=True,
             na_filter=True,    
             converters={
                 'Data': lambda x: datetime.strptime(x, '%d/%m/%Y'),
             }
-            #'Valor': lambda x: float(x.replace('.', '').replace(',', '.'))            
         )
 
         df = df.dropna(how='all')

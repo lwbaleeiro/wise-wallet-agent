@@ -42,16 +42,16 @@ def update_sheet(gc, df, spreadsheet_name, worksheet_name):
     if not new_data.empty:
         set_with_dataframe(worksheet, new_data, row=len(existing) + 2, include_column_header=False)
 
-    negative_rows = [
-        i+2 for i, row in enumerate(existing + new_data.to_dict('records')) 
-        if row['valor'] < 0
-    ]
+    # negative_rows = [
+    #     i+2 for i, row in enumerate(existing + new_data.to_dict('records')) 
+    #     if row['valor'] < 0
+    # ]
 
-    if negative_rows:
-        worksheet.format(
-            f'C{",C".join(map(str, negative_rows))}',
-            {"backgroundColor": {"red": 1, "green": 0.9, "blue": 0.9}}
-        )
+    # if negative_rows:
+    #     worksheet.format(
+    #         f'C{",C".join(map(str, negative_rows))}',
+    #         {"backgroundColor": {"red": 1, "green": 0.9, "blue": 0.9}}
+    #     )
 
     return True
 
