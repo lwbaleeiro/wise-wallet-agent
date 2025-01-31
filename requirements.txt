@@ -3,3 +3,4 @@ pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-
 pip install gspread
 pip install pandas pdfplumber requests
 pip install gspread-dataframe
+pip install xlsxwriter

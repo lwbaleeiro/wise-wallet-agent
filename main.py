@@ -1,4 +1,4 @@
-from src.email_handler import get_gmail_service, process_email, find_statement_emails
+from src.email_handler import get_gmail_service, process_email, find_statement_emails, mark_as_processed
 from src.sheets_manager import update_sheet, get_sheets_service
 
 def main():
@@ -15,6 +15,7 @@ def main():
             df = process_email(gmail_service, email)
             update_sheet(sheets_service, df, 'Controle Financeiro', 'Transações')
 
+            mark_as_processed(gmail_service, email)
             print(f'Dados atualizados: {len(df)} transações')
 
     except Exception as e:

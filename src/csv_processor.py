@@ -40,11 +40,15 @@ def parse_nubank_csv(file_path):
             sep=',',
             thousands='.',
             decimal=',',
+            skip_blank_lines=True,
+            na_filter=True,    
             converters={
                 'Data': lambda x: datetime.strptime(x, '%d/%m/%Y'),
-                'Valor': lambda x: float(x.replace('.', '').replace(',', '.'))
             }
+            #'Valor': lambda x: float(x.replace('.', '').replace(',', '.'))            
         )
+
+        df = df.dropna(how='all')
 
     except Exception as e:
         raise Exception(f"Error parsing Nubank CSV: {e}")
@@ -93,6 +97,10 @@ def categorizar_transacao(row):
     return 'OUTROS GASTOS' if valor < 0 else 'RECEITAS NÃO CATEGORIZADAS'
 
 def validate_transactions(df):
+
+    # Verificar linhas com valores ausentes
+    if df.isnull().values.any():
+        raise ValueError("Dados corrompidos: valores ausentes detectados")
 
     if df.empty:
         raise ValueError("DataFrame vazio - nenhuma transação processada")
