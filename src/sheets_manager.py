@@ -1,9 +1,17 @@
 import gspread
+
+from pathlib import Path
 from gspread_dataframe import get_as_dataframe, set_with_dataframe
 
-def init_google_sheets():
-    gc = gspread.service_account(filename='config/credentials.json')
-    return gc
+BASE_DIR = Path(__file__).parent.resolve()
+SHEETS_CREDENTIALS_PATH = BASE_DIR.parent / "config" / "sheets-credentials.json"
+
+def get_sheets_service():
+    try:
+        gc = gspread.service_account(filename=SHEETS_CREDENTIALS_PATH)
+        return gc
+    except Exception as e:
+        raise ValueError(f'Erro ao inicializar Google Sheets: {str(e)}')
 
 def update_sheet(gc, df, spreadsheet_name, worksheet_name):
     try:

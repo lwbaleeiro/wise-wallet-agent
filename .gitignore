@@ -174,5 +174,6 @@ cython_debug/
 .pypirc
 
 # tokens
+/config/gmail-credentials.json
+/config/sheets-credentials.json
 /config/token.json
-/config/credentials.json

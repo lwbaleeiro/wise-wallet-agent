@@ -50,14 +50,14 @@ def parse_nubank_csv(file_path):
         raise Exception(f"Error parsing Nubank CSV: {e}")
     
     df = df.rename(columns={
-        'Data': 'date', 
+        'Data': 'data', 
         'Valor': 'valor', 
         'Identificador': 'id_transacao', 
         'Descrição': 'descricao'})
     
     df['categoria'] = df.apply(categorizar_transacao, axis=1)
 
-    df = df[['data', 'valor', 'categoria', 'descricao']].drop_duplicates('id_transacao')
+    df = df[['data', 'valor', 'categoria', 'descricao', 'id_transacao']].drop_duplicates('id_transacao')
 
     if df.empty:
         raise ValueError("Nenhuma transação valida encontrada após o processamento")
@@ -97,7 +97,7 @@ def validate_transactions(df):
     if df.empty:
         raise ValueError("DataFrame vazio - nenhuma transação processada")
     
-    required_columns = ['Data', 'Valor', 'Descrição', 'Identificador']
+    required_columns = ['data', 'valor', 'descricao', 'id_transacao']
     missing = [col for col in required_columns if col not in df.columns]
     if missing:
         raise ValueError(f"Colunas faltando no DataFrame: {missing}")

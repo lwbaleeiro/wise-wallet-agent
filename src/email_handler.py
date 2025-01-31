@@ -20,7 +20,7 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.readonly',
 ATTACHMENT_PATTERN = re.compile(r'NU_\d+_\d{2}[A-Z]{3}\d{4}_\d{2}[A-Z]{3}\d{4}\.csv')
 
 # Caminhos dos arquivos
-CREDENTIALS_PATH = BASE_DIR.parent / "config" / "credentials.json"
+GMAIL_CREDENTIALS_PATH = BASE_DIR.parent / "config" / "gmail-credentials.json"
 TOKEN_PATH = BASE_DIR.parent / "config" / "token.json"
 
 # Configurações específicas do Nubank
@@ -39,7 +39,7 @@ def get_gmail_service():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_PATH, SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(GMAIL_CREDENTIALS_PATH, SCOPES)
             creds = flow.run_local_server(
                 port=0,
                 authorization_prompt_message='Por favor acesse esta URL: {url}',
@@ -66,60 +66,83 @@ def find_statement_emails(service):
     return results.get('messages', [])
 
 def download_attachment(service, message_id, attachment_id, filename):
-    attachment = service.users().messages().attachments().get(
-        userId='me',
-        messageId=message_id,
-        id=attachment_id
-    ).execute()
+    try:
+        attachment = service.users().messages().attachments().get(
+            userId='me',
+            messageId=message_id,
+            id=attachment_id
+        ).execute()
 
-    file_data = base64.urlsafe_b64decode(attachment['data'].encode('UTF-8'))
+        if 'data' not in attachment:
+            raise Exception('Resposta da API não contém dados em anexo.')
 
-    # Cria diretório temporário se não existir
-    temp_dir = tempfile.mkdtemp(prefix='nubank_')
-    file_path = os.path.join(temp_dir, filename)
+        file_data = base64.urlsafe_b64decode(attachment['data'].encode('UTF-8'))
 
-    with open(file_path, 'wb') as f:
-        f.write(file_data)
+        # Cria diretório temporário se não existir
+        temp_dir = tempfile.mkdtemp(prefix='nubank_')
+        file_path = os.path.join(temp_dir, filename)
 
-    return file_path
+        with open(file_path, 'wb') as f:
+            f.write(file_data)
+
+        return file_path
+    
+    except Exception as e:
+        print(f"Dados problemáticos: {attachment}")
+        raise Exception(f'Error downloading attachment: {str(e)}')
 
 def process_email(service, message):
+    try:
+        processed_label_id = get_or_create_processed_label(service)
+        if not processed_label_id:
+            raise Exception('Error creating processed label')
+        
+        msg = service.users().messages().get(
+            userId='me',
+            id=message['id'],
+            format='full'
+        ).execute()
 
-    processed_label_id = get_or_create_processed_label(service)
-    if not processed_label_id:
-        raise Exception('Error creating processed label')
+        dataframes = []
+        temp_files = []
+
+        for part in msg['payload']['parts']:
+            if part['filename'].endswith('.csv') and ATTACHMENT_PATTERN.match(part['filename']):
+                attachment_id = part['body']['attachmentId']
+                file_path = download_attachment(
+                    service,
+                    message['id'],
+                    attachment_id,
+                    part['filename']
+                )
+                df = parse_nubank_csv(file_path)
+                validate_transactions(df)
+                temp_files.append(file_path)
+        
+        combined_df = pd.concat(dataframes, ingonre_index=True) if dataframes else pd.DataFrame()
+        
+        # Remove arquivos temporários
+        for file_path in temp_files:
+            try:
+                os.remove(file_path)
+                os.rmdir(os.path.dirname(file_path))
+            except:
+                pass
+
+        # Marca email como processado
+        service.users().messages().modify(
+            userId='me',
+            id=message['id'],
+            body={
+                'addLabelIds': [processed_label_id], 
+                'removeLabelIds': ['INBOX']
+                }
+        ).execute()
+
+        return combined_df
     
-    msg = service.users().messages().get(
-        userId='me',
-        id=message['id'],
-        format='full'
-    ).execute()
-
-    attachments = []
-    for part in msg['payload']['parts']:
-        if part['filename'] and ATTACHMENT_PATTERN.match(part['filename']):
-            attachment_id = part['body']['attachmentId']
-            file_path = download_attachment(
-                service,
-                message['id'],
-                attachment_id,
-                part['filename']
-            )
-            df = parse_nubank_csv(file_path)
-            validate_transactions(df)
-            attachments.append(file_path)
-    
-    # Marca email como processado
-    service.users().messages().modify(
-        userId='me',
-        id=message['id'],
-        body={
-            'addLabelIds': [processed_label_id], 
-            'removeLabelIds': ['INBOX']
-            }
-    ).execute()
-
-    return pd.contact(attachments)
+    except Exception as e:
+        raise Exception(f'Error processing email: {str(e)}')
 
 # Cria label 'Processado' para marcar emails já processados. Necessário ser chamado apenas uma vez
 def get_or_create_processed_label(service):
