@@ -4,3 +4,6 @@ pip install gspread
 pip install pandas pdfplumber requests
 pip install gspread-dataframe
 pip install xlsxwriter
+pip install python-dotenv
+pip install ollama
+pip install tabulate

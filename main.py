@@ -1,5 +1,6 @@
 from src.email_handler import get_gmail_service, process_email, find_statement_emails, mark_as_processed
-from src.sheets_manager import update_sheet, get_sheets_service
+from src.sheets_manager import update_sheet, get_sheets_service, save_insights_to_sheet
+from src.ai_integration import generate_financial_insights
 
 def main():
 
@@ -14,6 +15,10 @@ def main():
         for email in emails:
             df = process_email(gmail_service, email)
             update_sheet(sheets_service, df, 'Controle Financeiro', 'Transações')
+
+            insights = generate_financial_insights(df)
+            save_insights_to_sheet(sheets_service, insights)
+            print('Análises salvas')
 
             mark_as_processed(gmail_service, email)
             print(f'Dados atualizados: {len(df)} transações')

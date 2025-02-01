@@ -1,5 +1,6 @@
 import gspread
 
+from datetime import datetime
 from pathlib import Path
 from gspread_dataframe import get_as_dataframe, set_with_dataframe
 
@@ -42,17 +43,27 @@ def update_sheet(gc, df, spreadsheet_name, worksheet_name):
     if not new_data.empty:
         set_with_dataframe(worksheet, new_data, row=len(existing) + 2, include_column_header=False)
 
-    # negative_rows = [
-    #     i+2 for i, row in enumerate(existing + new_data.to_dict('records')) 
-    #     if row['valor'] < 0
-    # ]
-
-    # if negative_rows:
-    #     worksheet.format(
-    #         f'C{",C".join(map(str, negative_rows))}',
-    #         {"backgroundColor": {"red": 1, "green": 0.9, "blue": 0.9}}
-    #     )
-
     return True
 
+def save_insights_to_sheet(gc, insights, spreadsheet_name="Controle Financeiro"):
+    try:
+        spreadsheet = gc.open(spreadsheet_name)
+    except gspread.SpreadsheetNotFound:
+        spreadsheet = gc.create(spreadsheet_name)
     
+    try:
+        worksheet = spreadsheet.worksheet("Análises")
+    except gspread.WorksheetNotFound:
+        worksheet = spreadsheet.add_worksheet("Análises", rows=100, cols=2)
+
+    timestamp = datetime.now().strftime("%d/%m/%Y %H:%M")
+    data = [['Data da Análise', timestamp],
+            ['Análise', insights]]
+
+    worksheet.clear()
+    worksheet.update('A1', data)
+        
+    worksheet.format("A:B", {"wrapStrategy": "WRAP"})
+    worksheet.columns_auto_resize(0, 1)
+    
+    return True
