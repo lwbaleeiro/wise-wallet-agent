@@ -63,7 +63,7 @@ def parse_nubank_csv(file_path):
     if df.empty:
         raise ValueError("Nenhuma transação valida encontrada após o processamento")
     
-    return df.sort_values('data', ascending=False)
+    return df.sort_values('data', ascending=True)
     
 def categorizar_transacao(row):
     desc = row['descricao'].upper()
